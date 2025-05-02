@@ -1,0 +1,162 @@
+# import necessary libraries and dataset and define the data precisely
+
+#1 df.Describe()
+
+#2 df.Info()
+
+#3 check unique values in dataset
+	df.apply(lambda x: len(x.unique()))
+
+#4 check the null values and fill or remove null values
+
+#5 check for categorical attributes
+	cat_col = []
+	for x in df.dtypes.index:
+		if df.dtypes[x] == 'object':
+			cat_col.append(x)
+	cat_col
+
+#6  remove unwanted columns in categorical columns
+	cat_col.remove('sr no.')
+	cat_col
+
+#7 print the categorical columns
+	for col in cat_col:
+		print(col)
+		print(df[col].value_counts())
+		print()
+#8 replacing values
+	df['Item_fat_content'] = df['Item_fat_content'].replace({'LF':'Low Fat', 'reg':Regular', 'low fat': 'Low Fat'})
+	df['Item_fat_content'].value_counts()
+	# another example
+	df['New_Item_Type'] = df['New_Item_Type'].map({'FD':'Food', 'NC':'Non-Consumable', 'DR':'Drinks'})
+	df['New_Item_Type'].value_counts()
+#9 create small values for year
+	df['Outlet_Years'] = 2013 - df['Outlet_Establishment_Year']
+
+#10 Exploratory Dat Analysis
+	# make distplot 
+	 sns.distplot(df['Item_weight']) #do it for every variable
+	# make countplots
+	sns.countplot(df["Item_fat_content"]) # for categorical variables
+
+	# correlation and heatmap
+	number_df = df.select_dtypes(include='number')
+	corr = numeric_df.corr()
+	sns.heatmap(corr, annot=True, cmap="coolwarm")
+
+#11 Label Encoding
+	from sklearn.preprocessing import LabelEncoder
+	le = LabelEncoder()
+	df['Outlet'] = le.fit_transform(df['Outlet_Identifier'])
+	cat_col = ['Item_Fat_Content', 'Item_Type', 'Outlet_Size', 'Outlet_Location_Type', 'Outlet_Type', 	'New_Item_Type']
+	for col in cat_col:
+	    df[col] = le.fit_transform(df[col])
+
+  # Onehot Encoding
+	df = pd.get_dummies(df, columns=['Item_Fat_Content', 'Outlet_Size', 'Outlet_Location_Type', 	'Outlet_Type', 'New_Item_Type'])
+	df.head()
+  # input output split
+	X = df.drop(columns=['Outlet_Establishment_Year', 'Item_Identifier', 'Outlet_Identifier', 	'Item_Outlet_Sales'])
+	y = df['Item_Outlet_Sales']
+
+	or
+	
+	X = df.iloc[:.:-1]
+	y = df["result_variables"]
+
+#12 Model Training
+                from sklearn.model_selection import cross_val_score
+                from sklearn.metrics import mean_squared_error
+                def train(model, X, y):
+	    # train the model
+	    model.fit(X, y)
+    
+	    # predict the training set
+	    pred = model.predict(X)
+    
+	    # perform cross-validation
+	    cv_score = cross_val_score(model, X, y, scoring='neg_mean_squared_error', cv=5)
+	    cv_score = np.abs(np.mean(cv_score))
+    
+	    print("Model Report")
+	    print("MSE:",mean_squared_error(y,pred))
+	    print("CV Score:", cv_score)
+
+
+	from sklearn.linear_model import LinearRegression, Ridge, Lasso
+	model = LinearRegression(normalize=True)
+	train(model, X, y)
+	coef = pd.Series(model.coef_, X.columns).sort_values()
+	coef.plot(kind='bar', title="Model Coefficients")
+
+	model = Ridge(normalize=True)
+	train(model, X, y)
+	coef = pd.Series(model.coef_, X.columns).sort_values()
+	coef.plot(kind='bar', title="Model Coefficients")
+
+	model = Lasso()
+	train(model, X, y)
+	coef = pd.Series(model.coef_, X.columns).sort_values()
+	coef.plot(kind='bar', title="Model Coefficients")
+
+# apply different models like decision tree, ensemble, randomforest, k nearest etc
+
+# other methods we need
+
+$1 renamng columns
+	df = df.rename(columns={'weathersit':'weather',
+	                       'yr':'year',
+	                       'mnth':'month',
+	                       'hr':'hour',
+	                       'hum':'humidity',
+	                       'cnt':'count'})
+	df.head()
+$2 # change int columns to category
+	cols = ['season','month','hour','holiday','weekday','workingday','weather']
+
+	for col in cols:
+	    df[col] = df[col].astype('category')
+	df.info()
+
+$3 Point plots
+	fig, ax = plt.subplots(figsize=(20,10))
+	sns.pointplot(data=df, x='hour', y='casual', hue='weekday', ax=ax)
+	ax.set(title='Count of bikes during weekdays and weekends: Unregistered users')
+
+$4 barplots
+	fig, ax = plt.subplots(figsize=(20,10))
+	sns.barplot(data=df, x='month', y='count', ax=ax)
+	ax.set(title='Count of bikes during different months')
+
+$5 using multiple model at once
+	from sklearn.linear_model import LinearRegression, Ridge, HuberRegressor, ElasticNetCV
+	from sklearn.tree import DecisionTreeRegressor
+	from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor, ExtraTreesRegressor
+
+	models = [LinearRegression(),
+	         Ridge(),
+	         HuberRegressor(),
+	         ElasticNetCV(),
+	         DecisionTreeRegressor(),
+	         RandomForestRegressor(),
+	         ExtraTreesRegressor(),
+	         GradientBoostingRegressor()]
+	from sklearn import model_selection
+	def train(model):
+	    kfold = model_selection.KFold(n_splits=5, random_state=42)
+	    pred = model_selection.cross_val_score(model, X, y, cv=kfold, scoring='neg_mean_squared_error')
+	    cv_score = pred.mean()
+	    print('Model:',model)
+	    print('CV score:', abs(cv_score))
+
+	for model in models:
+	    train(model)
+
+$6 Train test split
+	from sklearn.model_selection import train_test_split
+	x_train, x_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=42)
+
+$ 7 Make confusion matrices if the model is classification
+
+$ 8 check if the data is imbalanced, fix it using imblearn library
